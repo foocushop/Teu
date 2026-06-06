@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN Live TV - Portail Officiel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
+        .sidebar { height: calc(100vh - 120px); overflow-y: auto; }
+        .channel-item:hover { background: #1f2937; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Bandeau Sportif OneBox Sport -->
+    <div id="sport-ticker" class="bg-blue-600 text-white text-[10px] font-bold px-4 py-1.5 flex items-center justify-between border-b border-blue-800">
+        <span class="animate-pulse italic">Mise à jour des scores en direct...</span>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-black border-b border-neutral-800 p-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold">CDN Live TV</h1>
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">API Connectée</span>
+        </div>
+        <input type="text" id="recherche" placeholder="Rechercher par pays ou nom..." class="bg-neutral-900 border border-neutral-700 px-4 py-2 rounded-lg text-sm w-96 focus:outline-none focus:border-blue-500">
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-96 border-r border-neutral-800 sidebar bg-[#0a0a0a]">
+            <div id="conteneur-liste" class="p-4 text-center text-neutral-500">Chargement de la bibliothèque...</div>
+        </aside>
+
+        <main class="flex-1 flex flex-col items-center p-8 bg-[#020202]">
+            <div class="w-full max-w-4xl aspect-video bg-black rounded-lg shadow-2xl overflow-hidden border border-neutral-800">
+                <iframe id="lecteur" src="" allowfullscreen class="w-full h-full"></iframe>
+            </div>
+            <h2 id="titre-actuel" class="text-2xl font-bold mt-6 text-neutral-200">Sélectionnez une chaîne</h2>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const API_URL = "https://api.cdnlivetv.tv/api/v1/channels/?user=cdnlivetv&plan=free";
+        let toutesLesChaines = [];
+
+        // 1. Initialisation des scores (Google OneBox Sport)
+        async function updateSportsScores() {
+            const ticker = document.getElementById('sport-ticker');
+            // Simulation d'appel OneBox Sport
+            ticker.innerHTML = `
+                <div class="flex gap-4">
+                    <span>🏀 NBA: Celtics 102 - 98 Heat</span>
+                    <span>⚽ Ligue 1: PSG 2 - 0 OM</span>
+                    <span>🎾 ATP: Sinner bat Fritz 6-3, 6-4</span>
+                </div>
+            `;
+        }
+
+        // 2. Appel API réel
+        async function fetchChannels() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                toutesLesChaines = data.channels || [];
+                afficherMenu(toutesLesChaines);
+            } catch (err) {
+                document.getElementById('conteneur-liste').innerHTML = "Erreur : Impossible de contacter l'API.";
+            }
+        }
+
+        function afficherMenu(data) {
+            const conteneur = document.getElementById('conteneur-liste');
+            conteneur.innerHTML = '';
+            
+            const groupes = data.reduce((acc, curr) => {
+                const pays = curr.country || "Autre";
+                (acc[pays] = acc[pays] || []).push(curr);
+                return acc;
+            }, {});
+
+            for (const [pays, chaines] of Object.entries(groupes)) {
+                conteneur.innerHTML += `<h3 class="text-xs font-bold text-blue-500 uppercase mt-6 mb-2">${pays}</h3>`;
+                chaines.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = "channel-item p-3 border border-neutral-900 rounded mb-1 cursor-pointer flex items-center gap-3";
+                    div.innerHTML = `<span>${c.name}</span>`;
+                    div.onclick = () => {
+                        document.getElementById('lecteur').src = c.url;
+                        document.getElementById('titre-actuel').textContent = c.name;
+                    };
+                    conteneur.appendChild(div);
+                });
+            }
+        }
+
+        document.getElementById('recherche').oninput = (e) => {
+            const val = e.target.value.toLowerCase();
+            const filtre = toutesLesChaines.filter(c => 
+                c.name.toLowerCase().includes(val) || 
+                (c.country && c.country.toLowerCase().includes(val))
+            );
+            afficherMenu(filtre);
+        };
+
+        // Lancement
+        updateSportsScores();
+        fetchChannels();
+    </script>
+</body>
+</html>
+
+
+
