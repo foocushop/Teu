@@ -2,42 +2,29 @@
 <html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
-    <title>CDN Live TV - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-black text-white h-screen flex">
-    <aside class="w-80 border-r border-neutral-800 p-4 overflow-y-auto" id="liste-chaines">
-        <p class="text-blue-500 animate-pulse">Filtrage des flux actifs...</p>
-    </aside>
-    <main class="flex-1 p-6 flex flex-col">
-        <div class="flex-1 bg-neutral-900 rounded-lg overflow-hidden border border-neutral-800 relative">
-            <div id="erreur" class="hidden absolute inset-0 bg-black flex flex-col items-center justify-center">
-                <p class="text-red-500 font-bold">Flux indisponible</p>
-            </div>
-            <iframe id="lecteur" class="w-full h-full border-0"></iframe>
-        </div>
+<body class="bg-black text-white flex h-screen">
+    <aside class="w-80 border-r border-neutral-800 overflow-y-auto" id="menu"></aside>
+    <main class="flex-1 flex flex-col p-4">
+        <iframe id="lecteur" class="flex-1 w-full bg-neutral-900 border-0"></iframe>
     </main>
 
     <script>
-        // On récupère la liste déjà filtrée par notre serveur
-        async function charger() {
-            const res = await fetch('/api/check');
+        async function init() {
+            const res = await fetch('/api/channels');
             const data = await res.json();
-            const conteneur = document.getElementById('liste-chaines');
-            conteneur.innerHTML = '';
+            const menu = document.getElementById('menu');
             
             data.forEach(c => {
-                const btn = document.createElement('div');
-                btn.className = "p-3 mb-2 bg-neutral-900 rounded cursor-pointer hover:bg-neutral-800";
-                btn.textContent = c.name;
-                btn.onclick = () => {
-                    document.getElementById('lecteur').src = c.url;
-                    document.getElementById('erreur').classList.add('hidden');
-                };
-                conteneur.appendChild(btn);
+                const div = document.createElement('div');
+                div.className = "p-4 border-b border-neutral-800 cursor-pointer hover:bg-blue-900/20";
+                div.textContent = c.name;
+                div.onclick = () => document.getElementById('lecteur').src = c.url;
+                menu.appendChild(div);
             });
         }
-        charger();
+        init();
     </script>
 </body>
 </html>
