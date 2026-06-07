@@ -5,16 +5,23 @@ export default async function handler(req, res) {
         const response = await fetch(API_SOURCE);
         const data = await response.json();
         
-        // On vérifie les 20 premiers pour ne pas saturer le serveur
-        const tests = await Promise.all(data.channels.slice(0, 20).map(async (c) => {
-            try {
-                const check = await fetch(c.url, { method: 'HEAD' });
-                return check.ok ? c : null;
-            } catch { return null; }
-        }));
+        // On récupère toutes les chaînes retournées par l'API
+        const allChannels = data.channels || [];
         
-        res.status(200).json(tests.filter(c => c !== null));
-    } catch {
-        res.status(500).json({ error: "API indisponible" });
+        // On effectue un filtrage asynchrone sur tout le tableau
+        const activeChannels = [];
+        for (const channel of allChannels) {
+            try {
+                // On vérifie rapidement chaque flux
+                const check = await fetch(channel.url, { method: 'HEAD', signal: AbortSignal.timeout(1000) });
+                if (check.ok) activeChannels.push(channel);
+            } catch (e) {
+                continue; // On ignore les liens morts silencieusement
+            }
+        }
+        
+        res.status(200).json(activeChannels);
+    } catch (e) {
+        res.status(500).json({ error: "Erreur lors du filtrage" });
     }
 }
