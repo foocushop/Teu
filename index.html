@@ -2,101 +2,42 @@
 <html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDN Live TV - Portail Officiel</title>
+    <title>CDN Live TV - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
-        .sidebar { height: calc(100vh - 120px); overflow-y: auto; }
-        .channel-item:hover { background: #1f2937; }
-        #message-erreur { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 5; flex-direction: column; align-items: center; justify-content: center; }
-    </style>
 </head>
-<body class="flex flex-col h-screen">
-
-    <!-- Bandeau Sportif -->
-    <div id="sport-ticker" class="bg-blue-600 text-white text-[10px] font-bold px-4 py-1.5 flex items-center justify-between border-b border-blue-800">
-        <span>Mise à jour des scores en direct...</span>
-    </div>
-
-    <!-- Header -->
-    <header class="bg-black border-b border-neutral-800 p-4 flex items-center justify-between">
-        <h1 class="text-xl font-bold">CDN Live TV</h1>
-        <input type="text" id="recherche" placeholder="Rechercher une chaîne..." class="bg-neutral-900 border border-neutral-700 px-4 py-2 rounded-lg text-sm w-96">
-    </header>
-
-    <div class="flex flex-1 overflow-hidden">
-        <aside class="w-96 border-r border-neutral-800 sidebar bg-[#0a0a0a]">
-            <div id="conteneur-liste" class="p-4">Chargement...</div>
-        </aside>
-
-        <main class="flex-1 flex flex-col items-center p-8 bg-[#020202]">
-            <div class="w-full max-w-4xl aspect-video bg-black rounded-lg shadow-2xl overflow-hidden border border-neutral-800 relative">
-                <!-- Message d'erreur élégant -->
-                <div id="message-erreur">
-                    <i data-lucide="alert-circle" class="w-12 h-12 text-red-500 mb-2"></i>
-                    <p class="text-white font-medium">Chaîne indisponible ou hors ligne</p>
-                    <p class="text-neutral-500 text-sm">Veuillez essayer une autre chaîne.</p>
-                </div>
-                <iframe id="lecteur" src="" allowfullscreen class="w-full h-full"></iframe>
+<body class="bg-black text-white h-screen flex">
+    <aside class="w-80 border-r border-neutral-800 p-4 overflow-y-auto" id="liste-chaines">
+        <p class="text-blue-500 animate-pulse">Filtrage des flux actifs...</p>
+    </aside>
+    <main class="flex-1 p-6 flex flex-col">
+        <div class="flex-1 bg-neutral-900 rounded-lg overflow-hidden border border-neutral-800 relative">
+            <div id="erreur" class="hidden absolute inset-0 bg-black flex flex-col items-center justify-center">
+                <p class="text-red-500 font-bold">Flux indisponible</p>
             </div>
-            <h2 id="titre-actuel" class="text-2xl font-bold mt-6 text-neutral-200">Sélectionnez une chaîne</h2>
-        </main>
-    </div>
+            <iframe id="lecteur" class="w-full h-full border-0"></iframe>
+        </div>
+    </main>
 
     <script>
-        lucide.createIcons();
-        const API_URL = "https://api.cdnlivetv.tv/api/v1/channels/?user=cdnlivetv&plan=free";
-        let toutesLesChaines = [];
-
-        async function fetchChannels() {
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                toutesLesChaines = data.channels || [];
-                afficherMenu(toutesLesChaines);
-            } catch (err) {
-                document.getElementById('conteneur-liste').innerHTML = "Erreur de connexion API.";
-            }
-        }
-
-        function afficherMenu(data) {
-            const conteneur = document.getElementById('conteneur-liste');
+        // On récupère la liste déjà filtrée par notre serveur
+        async function charger() {
+            const res = await fetch('/api/check');
+            const data = await res.json();
+            const conteneur = document.getElementById('liste-chaines');
             conteneur.innerHTML = '';
             
             data.forEach(c => {
-                const div = document.createElement('div');
-                div.className = "channel-item p-3 border border-neutral-900 rounded mb-1 cursor-pointer flex items-center gap-3";
-                div.innerHTML = `<span>${c.name}</span>`;
-                div.onclick = () => chargerLecteur(c.url, c.name);
-                conteneur.appendChild(div);
+                const btn = document.createElement('div');
+                btn.className = "p-3 mb-2 bg-neutral-900 rounded cursor-pointer hover:bg-neutral-800";
+                btn.textContent = c.name;
+                btn.onclick = () => {
+                    document.getElementById('lecteur').src = c.url;
+                    document.getElementById('erreur').classList.add('hidden');
+                };
+                conteneur.appendChild(btn);
             });
         }
-
-        function chargerLecteur(url, nom) {
-            const iframe = document.getElementById('lecteur');
-            const erreur = document.getElementById('message-erreur');
-            
-            document.getElementById('titre-actuel').textContent = nom;
-            iframe.src = url;
-            
-            // Si l'iframe ne charge pas correctement, on montre l'erreur
-            iframe.onerror = () => {
-                erreur.style.display = 'flex';
-            };
-        }
-
-        document.getElementById('recherche').oninput = (e) => {
-            const val = e.target.value.toLowerCase();
-            afficherMenu(toutesLesChaines.filter(c => c.name.toLowerCase().includes(val)));
-        };
-
-        fetchChannels();
+        charger();
     </script>
 </body>
 </html>
-
-
-
-
